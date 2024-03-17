@@ -14,8 +14,8 @@ impl Arguments {
         }
     }
 
-    pub fn parse(args: &Vec<String>) -> Result<Arguments, Box<dyn Error>> {
-        let mut local_args = args.clone();
+    pub fn parse(args: &[String]) -> Result<Arguments, Box<dyn Error>> {
+        let mut local_args = args.to_owned();
         let line_number_arg = local_args.iter().position(|p| p == "-n");
 
         let show_line_number = match line_number_arg {
