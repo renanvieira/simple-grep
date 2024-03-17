@@ -9,19 +9,18 @@ use std::{
 
 use crate::argument_parser::Arguments;
 
-const SHELL_STYLE_BOLD_START: &'static str = "\x1b[1m";
-const SHELL_STYLE_BOLD_END: &'static str = "\x1b[0m";
-const SHELL_STYLE_BOLD_RED_START: &'static str = "\x1b[1;31m";
+const SHELL_STYLE_BOLD_START: &str = "\x1b[1m";
+const SHELL_STYLE_BOLD_END: &str = "\x1b[0m";
+const SHELL_STYLE_BOLD_RED_START: &str = "\x1b[1;31m";
 
 fn search(arguments: Arguments, input: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let result = input
         .lines()
-        .into_iter()
         .enumerate()
         .filter(|(_, s)| s.contains(&arguments.search_term))
         .collect::<Vec<(usize, &str)>>();
 
-    if result.len() > 0 {
+    if !result.is_empty() {
         let output = result
             .iter()
             .map(|(line_no, text)| {
@@ -37,7 +36,7 @@ fn search(arguments: Arguments, input: &str) -> Result<Vec<String>, Box<dyn Erro
                 if arguments.show_line_number {
                     format!("{}: {}", line_no, bold_text)
                 } else {
-                    format!("{}", bold_text)
+                    bold_text
                 }
             })
             .collect::<Vec<_>>();
@@ -50,7 +49,7 @@ fn search(arguments: Arguments, input: &str) -> Result<Vec<String>, Box<dyn Erro
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut input: String = String::default();
-    let args: Vec<String> = env::args().into_iter().skip(1).collect();
+    let args: Vec<String> = env::args().skip(1).collect();
     let arguments_result = Arguments::parse(&args);
 
     let arguments = match arguments_result {
