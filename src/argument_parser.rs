@@ -7,10 +7,10 @@ pub struct Arguments {
 }
 
 impl Arguments {
-    pub fn new(show_line_number: bool, filename: String) -> Self {
+    pub fn new(show_line_number: bool, search_term: String) -> Self {
         Self {
             show_line_number,
-            search_term: filename,
+            search_term,
         }
     }
 
@@ -26,9 +26,11 @@ impl Arguments {
             None => false,
         };
 
-        let needle = local_args.last().expect("Search string missing...");
-
-        Ok(Arguments::new(show_line_number, needle.to_owned()))
+        let needle = local_args.last();
+        match needle {
+            Some(n) => Ok(Arguments::new(show_line_number, n.to_owned())),
+            None => Err("Search term missing...".into()),
+        }
     }
 }
 
