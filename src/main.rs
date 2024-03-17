@@ -3,40 +3,49 @@ mod argument_parser;
 use std::{
     env,
     error::Error,
-    io::{self, Read}, process::exit,
+    io::{self, Read},
+    process::exit,
 };
 
 use crate::argument_parser::Arguments;
 
 const SHELL_STYLE_BOLD_START: &'static str = "\x1b[1m";
 const SHELL_STYLE_BOLD_END: &'static str = "\x1b[0m";
-const SHELL_STYLE_BOLD_RED_START : &'static str = "\x1b[1;31m";
+const SHELL_STYLE_BOLD_RED_START: &'static str = "\x1b[1;31m";
 
-fn search(arguments: Arguments, input: &str) -> Result<String, Box<dyn Error>> {
+fn search(arguments: Arguments, input: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let result = input
         .lines()
         .into_iter()
         .enumerate()
-        .find(|(_, s)| s.contains(&arguments.search_term));
+        .filter(|(_, s)| s.contains(&arguments.search_term))
+        .collect::<Vec<(usize, &str)>>();
 
-    if let Some(r) = result {
-        let bold_text = r.1.replace(
-            &arguments.search_term,
-            format!(
-                "{}{}{}",
-                SHELL_STYLE_BOLD_START, &arguments.search_term, SHELL_STYLE_BOLD_END
-            )
-            .as_ref(),
-        );
+    if result.len() > 0 {
+        let output = result
+            .iter()
+            .map(|(line_no, text)| {
+                let bold_text = text.replace(
+                    &arguments.search_term,
+                    format!(
+                        "{}{}{}",
+                        SHELL_STYLE_BOLD_START, &arguments.search_term, SHELL_STYLE_BOLD_END
+                    )
+                    .as_ref(),
+                );
 
-        if arguments.show_line_number {
-            return Ok(format!("{}: {}", r.0, bold_text));
-        } else {
-            return Ok(format!("{}", bold_text));
-        }
+                if arguments.show_line_number {
+                    format!("{}: {}", line_no, bold_text)
+                } else {
+                    format!("{}", bold_text)
+                }
+            })
+            .collect::<Vec<_>>();
+
+        return Ok(output);
     }
 
-    Ok(String::default())
+    Ok(Vec::default())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -47,7 +56,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let arguments = match arguments_result {
         Ok(args) => args,
         Err(err) => {
-            eprintln!("{}ERROR: {}{}", SHELL_STYLE_BOLD_RED_START, err, SHELL_STYLE_BOLD_END);
+            eprintln!(
+                "{}ERROR: {}{}",
+                SHELL_STYLE_BOLD_RED_START, err, SHELL_STYLE_BOLD_END
+            );
             exit(1);
         }
     };
@@ -59,8 +71,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let output = search(arguments, input.as_ref())?;
 
-    println!("{}", output);
-
+    println!(
+        "{}",
+        output
+            .iter()
+            .fold(String::new(), |acc, arg| acc + "\n" + arg.as_ref())
+    );
 
     Ok(())
 }
@@ -73,15 +89,19 @@ mod tests {
 
     #[test]
     fn test_find_word() -> Result<(), Box<dyn Error>> {
-        let input = "test\ntext\n1\n2\n3";
+        let input = "test\ntext what?\ntext again?\n1\n2\ntext one more time";
         let needle = "text".to_owned();
         let args = Arguments::new(false, needle.clone());
 
-        let output = search(args, input.as_ref())?;
+        let output_list = search(args, input.as_ref())?;
 
-        assert!(output.contains(&needle));
-        assert!(output.contains(&SHELL_STYLE_BOLD_START));
-        assert!(output.contains(&SHELL_STYLE_BOLD_END));
+        assert_eq!(output_list.len(), 3);
+
+        for output in output_list {
+            assert!(output.contains(&needle));
+            assert!(output.contains(&SHELL_STYLE_BOLD_START));
+            assert!(output.contains(&SHELL_STYLE_BOLD_END));
+        }
 
         Ok(())
     }
